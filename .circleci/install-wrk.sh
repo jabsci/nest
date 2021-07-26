@@ -5,7 +5,7 @@ cd "$(dirname "$0")"
 # based on https://medium.com/@felipedutratine/intelligent-benchmark-with-wrk-163986c1587f
 
 cd /tmp/
-sudo apt-get install build-essential libssl-dev git -y
+sudo apt-get update && apt-get install libssl-dev -y
 git clone https://github.com/wg/wrk.git wrk
 cd wrk
 sudo make

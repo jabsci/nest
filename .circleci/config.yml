@@ -3,10 +3,14 @@ version: 2.1
 orbs:
   node: circleci/node@4.5.1
 
-jobs:
-  build-lint-codecheck:
+executors:
+  node-base:
     docker:
       - image: cimg/node:12.22.3
+
+jobs:
+  build-lint-codecheck:
+    executor: node-base
     steps:
       - checkout
       - node/install-npm
@@ -24,8 +28,7 @@ jobs:
           name: Run codechecks with benchmarks
           command: yarn codechecks:benchmarks
   build-samples:
-    docker:
-      - image: cimg/node:12.22.3
+    executor: node-base
     steps:
       - checkout
       - node/install-npm
@@ -36,8 +39,7 @@ jobs:
           environment:
             DISABLE_OPENCOLLECTIVE: "true"
   integration_tests:
-    docker:
-      - image: cimg/node:12.22.3
+    executor: node-base
     steps:
       - checkout
       - setup_remote_docker:
@@ -54,6 +56,21 @@ jobs:
       - run:
           name: Run Integration Tests
           command: npm run test:integration
+  test-multiple-node-versions:
+    parameters:
+      node-version:
+        type: string
+    docker:
+      - image: cimg/node:<< parameters.node-version >>
+    steps:
+      - checkout
+      - node/install-packages
+      - run:
+          name: Run npm Build
+          command: npm run build
+      - run:
+          name: Run npm test
+          command: npm run test
 
 workflows:
   build-test-check:
@@ -65,14 +82,7 @@ workflows:
       - integration_tests:
           requires:
             - build-lint-codecheck
-  test-multiple-node-versions:
-    jobs:
-      - node/test:
-          run-command: build test
+      - test-multiple-node-versions:
           matrix:
             parameters:
-              version:
-                - "10.24.1"
-                - "12.22.3"
-                - "14.17.3"
-                - "16.5.0"
+              node-version: ["10.24.1", "12.22.3", "14.17.3", "16.5.0"]
