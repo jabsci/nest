@@ -16,6 +16,9 @@ jobs:
       - node/install-npm
       - node/install-packages
       - run:
+          name: Run npm Build
+          command: npm run build
+      - run:
           name: Run npm lint
           command: npm run lint
       - run:
@@ -31,7 +34,6 @@ jobs:
     executor: node-base
     steps:
       - checkout
-      - node/install-npm
       - node/install-packages
       - run:
           name: Run codechecks 
@@ -56,7 +58,7 @@ jobs:
       - run:
           name: Run Integration Tests
           command: npm run test:integration
-  test-multiple-node-versions:
+  test-version:
     parameters:
       node-version:
         type: string
@@ -73,7 +75,7 @@ jobs:
           command: npm run test
 
 workflows:
-  build-test-check:
+  build-lint-check-test:
     jobs:
       - build-lint-codecheck
       - build-samples:
@@ -82,7 +84,9 @@ workflows:
       - integration_tests:
           requires:
             - build-lint-codecheck
-      - test-multiple-node-versions:
+  test-multiple-versions:
+    jobs:
+      - test-version:
           matrix:
             parameters:
               node-version: ["10.24.1", "12.22.3", "14.17.3", "16.5.0"]
