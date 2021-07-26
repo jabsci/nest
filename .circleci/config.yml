@@ -12,14 +12,14 @@ jobs:
       - image: cimg/node:12.22.3
     steps:
       - checkout
-      - node/npm_install:
+      - node/install-packages:
           override-ci-command: npm run build
   lint:
     docker:
       - image: cimg/node:12.22.3
     steps:  
       - checkout
-      - node/npm_install:
+      - node/install-packages:
           override-ci-command: npm run lint
       - run:
           name: Lint commit
@@ -40,14 +40,14 @@ jobs:
       - run:
           name: List running containers
           command: docker ps
-      - node/npm_install:
+      - node/install-packages:
           override-ci-command: npm run test:integration
   codechecks_benchmarks:
     docker:
       - image: cimg/node:12.22.3
     steps:
       - checkout
-      - node/npm_install:
+      - node/install-packages:
           override-ci-command: npm run build
       - run:
           name: Install native wrk
@@ -62,7 +62,7 @@ jobs:
       DISABLE_OPENCOLLECTIVE: "true"
     steps:
       - checkout
-      - node/npm_install:
+      - node/install-packages:
           override-ci-command: npm run build:samples
 
 workflows:
