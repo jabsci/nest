@@ -1,24 +1,40 @@
 version: 2.1
 
-parameters:
-  node-version:
-    type: string
-    default: "12.22.3"
-
 orbs:
   node: circleci/node@4.5.1
 
 jobs:
-  lint:
+  build-lint-codecheck:
     docker:
       - image: cimg/node:12.22.3
     steps:
+      - checkout
+      - node/install-npm
+      - node/install-packages
       - run:
           name: Run npm lint
           command: npm run lint
       - run:
           name: Lint commit
           command: ./node_modules/.bin/commitlint-circle -c .commitlintrc.json
+      - run:
+          name: Install native wrk
+          command: .circleci/install-wrk.sh
+      - run:
+          name: Run codechecks with benchmarks
+          command: yarn codechecks:benchmarks
+  build-samples:
+    docker:
+      - image: cimg/node:12.22.3
+    steps:
+      - checkout
+      - node/install-npm
+      - node/install-packages
+      - run:
+          name: Run codechecks 
+          command: npm run build:samples
+          environment:
+            DISABLE_OPENCOLLECTIVE: "true"
   integration_tests:
     docker:
       - image: cimg/node:12.22.3
@@ -34,50 +50,25 @@ jobs:
       - run:
           name: List running containers
           command: docker ps
+      - node/install-packages
       - run:
-          name: "12.22.3"
-          command: test:integration
-  codechecks_benchmarks:
-    docker:
-      - image: cimg/node:12.22.3
-    steps:
-      - run:
-          name: Run npm build
-          command: npm run build
-      - run:
-          name: Install native wrk
-          command: .circleci/install-wrk.sh
-      - run:
-          name: Run codechecks with benchmarks
-          command: yarn codechecks:benchmarks
-  samples:
-    docker:
-      - image: cimg/node:12.22.3
-    steps:
-      - run:
-          name: Run codechecks 
-          command: npm run build:samples
-          environment:
-            DISABLE_OPENCOLLECTIVE: "true"
+          name: Run Integration Tests
+          command: npm run test:integration
 
 workflows:
   build-test-check:
     jobs:
-      - node/test:
-          version: << pipeline.parameters.node-version >>
-          run-command: build
-      - lint:
+      - build-lint-codecheck
+      - build-samples:
           requires:
-            - node/test
-      - codechecks_benchmarks:
+            - build-lint-codecheck
+      - integration_tests:
           requires:
-            - node/test
-      - samples:
-          requires:
-            - node/test
-  build-test-multiple:
+            - build-lint-codecheck
+  test-multiple-node-versions:
     jobs:
       - node/test:
+          run-command: build test
           matrix:
             parameters:
               version:
