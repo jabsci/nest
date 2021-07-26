@@ -6,21 +6,29 @@ environment:
 orbs:
   node: circleci/node@4.5.1
 
+parameters:
+  node-executor:
+    type: string
+    default: node/default
+
 jobs:
   build:
-    docker:
-      - image: cimg/node:12.22.3
+    executor: << pipeline.parameters.node-executor >>
     steps:
       - checkout
-      - node/install-packages:
-          override-ci-command: npm run build
+      - node/install-npm
+      - node/install-packages
+      - run:
+          name: Run npm build
+          command: npm run build
   lint:
-    docker:
-      - image: cimg/node:12.22.3
-    steps:  
+    executor: << pipeline.parameters.node-executor >>
+    steps:
       - checkout
-      - node/install-packages:
-          override-ci-command: npm run lint
+      - node/install-packages
+      - run:
+          name: Run Lint
+          command: npm run lint
       - run:
           name: Lint commit
           command: ./node_modules/.bin/commitlint-circle -c .commitlintrc.json
@@ -32,6 +40,7 @@ jobs:
           node-version: "12"
       - setup_remote_docker:
           version: 19.03.13
+      - node/install-packages
       - run:
           name: Prepare tests
           command: |
@@ -40,15 +49,17 @@ jobs:
       - run:
           name: List running containers
           command: docker ps
-      - node/install-packages:
-          override-ci-command: npm run test:integration
+      - run:
+          name: Run Integration Tests
+          command: npm run test:integration
   codechecks_benchmarks:
-    docker:
-      - image: cimg/node:12.22.3
+    executor: << pipeline.parameters.node-executor >>
     steps:
       - checkout
-      - node/install-packages:
-          override-ci-command: npm run build
+      - node/install-packages
+      - run:
+          name: Run npm Build
+          command: npm run build
       - run:
           name: Install native wrk
           command: .circleci/install-wrk.sh
@@ -56,14 +67,15 @@ jobs:
           name: Run codechecks with benchmarks
           command: yarn codechecks:benchmarks
   samples:
-    docker:
-      - image: cimg/node:12.22.3
+    executor: << pipeline.parameters.node-executor >>
     environment:
       DISABLE_OPENCOLLECTIVE: "true"
     steps:
       - checkout
-      - node/install-packages:
-          override-ci-command: npm run build:samples
+      - node/install-packages
+      - run:
+          name: Build Samples
+          command: npm run build:samples
 
 workflows:
   build-and-test:
