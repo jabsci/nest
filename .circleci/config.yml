@@ -1,46 +1,31 @@
 version: 2.1
 
-environment:
-  CIRCLE_WORKING_DIRECTORY: ~/nest
+parameters:
+  node-version:
+    type: string
+    default: "12.22.3"
 
 orbs:
   node: circleci/node@4.5.1
 
-parameters:
-  node-executor:
-    type: string
-    default: node/default
-
 jobs:
-  build:
-    executor: << pipeline.parameters.node-executor >>
-    steps:
-      - checkout
-      - node/install-npm
-      - node/install-packages
-      - run:
-          name: Run npm build
-          command: npm run build
   lint:
-    executor: << pipeline.parameters.node-executor >>
+    docker:
+      - image: cimg/node:12.22.3
     steps:
-      - checkout
-      - node/install-packages
       - run:
-          name: Run Lint
+          name: Run npm lint
           command: npm run lint
       - run:
           name: Lint commit
           command: ./node_modules/.bin/commitlint-circle -c .commitlintrc.json
   integration_tests:
-    machine: true
+    docker:
+      - image: cimg/node:12.22.3
     steps:
       - checkout
-      - node/install:
-          node-version: "12"
       - setup_remote_docker:
           version: 19.03.13
-      - node/install-packages
       - run:
           name: Prepare tests
           command: |
@@ -50,15 +35,14 @@ jobs:
           name: List running containers
           command: docker ps
       - run:
-          name: Run Integration Tests
-          command: npm run test:integration
+          name: "12.22.3"
+          command: test:integration
   codechecks_benchmarks:
-    executor: << pipeline.parameters.node-executor >>
+    docker:
+      - image: cimg/node:12.22.3
     steps:
-      - checkout
-      - node/install-packages
       - run:
-          name: Run npm Build
+          name: Run npm build
           command: npm run build
       - run:
           name: Install native wrk
@@ -67,39 +51,37 @@ jobs:
           name: Run codechecks with benchmarks
           command: yarn codechecks:benchmarks
   samples:
-    executor: << pipeline.parameters.node-executor >>
-    environment:
-      DISABLE_OPENCOLLECTIVE: "true"
+    docker:
+      - image: cimg/node:12.22.3
     steps:
-      - checkout
-      - node/install-packages
       - run:
-          name: Build Samples
+          name: Run codechecks 
           command: npm run build:samples
+          environment:
+            DISABLE_OPENCOLLECTIVE: "true"
 
 workflows:
-  build-and-test:
+  build-test-check:
     jobs:
-      - build
+      - node/test:
+          version: << pipeline.parameters.node-version >>
+          run-command: build
       - lint:
           requires:
-            - build
-      - integration_tests:
-          requires:
-            - build
+            - node/test
       - codechecks_benchmarks:
           requires:
-            - build
+            - node/test
       - samples:
           requires:
-            - build
+            - node/test
+  build-test-multiple:
+    jobs:
       - node/test:
-          requires:
-            - build
           matrix:
             parameters:
               version:
-                - "10"
-                - "12"
-                - "14"
-                - "16"
+                - "10.24.1"
+                - "12.22.3"
+                - "14.17.3"
+                - "16.5.0"
